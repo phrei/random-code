@@ -91,8 +91,9 @@
         let timeIndex = 0;
         let isPaused = false;
 
-        // Initialisiere den Zufallszahlengenerator mit einem festen Seed
-        const rng = new Math.seedrandom('chart-seed');  // 'chart-seed' ist der Seed-Wert
+        // Generiere einen zufälligen Seed basierend auf der aktuellen Zeit und Math.random
+        const randomSeed = Math.random().toString(36).substr(2, 9);  // Zufalls-Seed mit 9 Zeichen
+        const rng = new Math.seedrandom(randomSeed);  // Verwende den zufälligen Seed
 
         // Funktion zur Aktualisierung der Y-Achse
         function adjustYAxis() {

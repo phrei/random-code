@@ -124,10 +124,18 @@
 
             const newValue = calculateNextValue(lastValue);
 
+            // Daten hinzufügen
             dataset.data.push(newValue);
             data.labels.push(timeIndex);
             timeIndex++;
 
+            // Nur die letzten 100 Werte behalten
+            if (dataset.data.length > 100) {
+                dataset.data.shift();
+                data.labels.shift();
+            }
+
+            // X-Achse anpassen
             if (timeIndex > 100) {
                 config.options.scales.x.min = timeIndex - 100;
                 config.options.scales.x.max = timeIndex;

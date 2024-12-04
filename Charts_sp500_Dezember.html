@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S&P 500 Dezember / Januar Charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 20px;
+    }
+    #charts {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr); /* 5 Spalten, gleichmäßig verteilt */
+      grid-template-rows: repeat(2, 50vh); /* 2 Reihen, jeweils 50% der Bildschirmhöhe */
+      gap: 10px; /* Abstand zwischen den Charts */
+      padding: 10px;
+      height: calc(100vh - 80px); /* Gesamthöhe des Bildschirms minus Header */
+    }
+    .chart-container {
+      width: 100%;
+      height: 100%;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>S&P 500 Preise im Dezember/Januar</h1>
+  <div id="charts"></div>
+
+  <script>
+    const years = [2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014];
+    const proxyUrl = "https://corsproxy.io/?"; // Öffentlicher CORS-Proxy
+
+    // Funktion, um Daten aus der CSV zu laden und zu verarbeiten
+    async function fetchSP500Data(year) {
+      const url = `https://stooq.com/q/d/l/?s=%5Espx&d1=${year}1201&d2=${year+1}0131&i=d`;
+      const response = await fetch(proxyUrl + encodeURIComponent(url));
+
+      if (!response.ok) {
+        throw new Error(`Fehler beim Abrufen der Daten für ${year}`);
+      }
+
+      const csvData = await response.text();
+      if (!csvData || csvData.trim() === "") {
+        throw new Error(`Keine Daten für ${year}`);
+      }
+
+      // CSV in Objekte umwandeln
+      const rows = csvData.split("\n").slice(1); // Überspringt die Kopfzeile
+      return rows
+        .map(row => row.split(","))
+        .filter(columns => columns.length >= 5) // Nur gültige Zeilen
+        .map(([date, open, high, low, close]) => ({
+          date,
+          price: parseFloat(close),
+          day: parseInt(date.split("-")[2], 10), // Nur der Tag
+        }));
+    }
+
+    // Funktion, um ein Chart zu erstellen
+    function createChart(data, year) {
+      // Chart-Container erstellen
+      const container = document.createElement("div");
+      container.className = "chart-container";
+      document.getElementById("charts").appendChild(container);
+
+      // Canvas für das Chart hinzufügen
+      const ctx = document.createElement("canvas");
+      container.appendChild(ctx);
+
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.map(d => d.day),
+          datasets: [
+            {
+              label: `S&P 500 - Dezember ${year} / Januar ${year+1}`,
+              data: data.map(d => d.price),
+              borderColor: "blue",
+              backgroundColor: "rgba(0, 123, 255, 0.1)",
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true },
+            title: { display: true, text: `S&P 500 - Dezember ${year} / Januar ${year+1}` },
+          },
+          scales: {
+            x: { title: { display: true, text: "Tag" } },
+            y: { title: { display: true, text: "Preis (USD)" } },
+          },
+        },
+      });
+    }
+
+    // Daten laden und Charts erstellen
+    async function loadCharts() {
+      for (const year of years) {
+        try {
+          const data = await fetchSP500Data(year);
+          createChart(data, year);
+        } catch (error) {
+          console.error(`Error loading data for ${year}:`, error);
+        }
+      }
+    }
+
+    loadCharts();
+  </script>
+</body>
+</html>

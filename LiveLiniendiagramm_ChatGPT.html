@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamisches Liniendiagramm</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            cursor: pointer; /* Zeigt an, dass der Chart klickbar ist */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="lineChart"></canvas>
+
+    <script>
+        // Initiale Daten für das Diagramm
+        const data = {
+            labels: [], // Labels starten leer
+            datasets: [{
+                label: 'Live Daten',
+                data: [], // Daten starten leer
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 2,
+                tension: 0.2 // Glatter Verlauf
+            }]
+        };
+
+        // Chart-Konfiguration
+        const config = {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Zeitpunkt' },
+                        type: 'linear',
+                        position: 'bottom',
+                        ticks: { stepSize: 1 },
+                        min: 0,
+                        max: 100
+                    },
+                    y: {
+                        title: { display: true, text: 'Wert' },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: { display: true },
+                },
+                animation: false,
+            },
+            plugins: [{
+                id: 'currentValue',
+                afterDraw(chart) {
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    const dataset = chart.data.datasets[0];
+                    const lastValue = dataset.data[dataset.data.length - 1] || 100; // Fallback, falls keine Daten vorhanden
+                    ctx.font = '16px Arial';
+                    ctx.fillStyle = 'black';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`Aktueller Wert: ${lastValue}`, chart.width - 10, 20);
+                    ctx.restore();
+                }
+            }]
+        };
+
+        // Initialisierung des Diagramms
+        const ctx = document.getElementById('lineChart').getContext('2d');
+        const lineChart = new Chart(ctx, config);
+
+        // Startwert für die X-Achse
+        let timeIndex = 0;
+        let isPaused = false;
+
+        // Funktion zur Aktualisierung der Y-Achse
+        function adjustYAxis() {
+            const dataset = data.datasets[0];
+            const values = dataset.data;
+            if (values.length === 0) return;
+
+            // Minimum und Maximum finden
+            const minValue = Math.min(...values);
+            const maxValue = Math.max(...values);
+
+            // Dynamische Anpassung der Y-Achse mit etwas Puffer
+            config.options.scales.y.min = Math.floor(minValue - 5); // 5 Einheiten Puffer nach unten
+            config.options.scales.y.max = Math.ceil(maxValue + 5); // 5 Einheiten Puffer nach oben
+        }
+
+        // Funktion zur Aktualisierung des Diagramms
+        function updateChart() {
+            if (isPaused) return;
+
+            const dataset = data.datasets[0];
+            const lastValue = dataset.data.length > 0 ? dataset.data[dataset.data.length - 1] : 100;
+            const newValue = lastValue + (Math.random() > 0.5 ? 1 : -1); // Zufällig +1 oder -1
+
+            // Neuen Datenpunkt und neues Label hinzufügen
+            dataset.data.push(newValue);
+            data.labels.push(timeIndex);
+            timeIndex++;
+
+            // Begrenzung auf die letzten 100 Werte
+            if (timeIndex > 100) {
+                config.options.scales.x.min = timeIndex - 100;
+                config.options.scales.x.max = timeIndex;
+            }
+
+            // Y-Achse anpassen
+            adjustYAxis();
+
+            // Diagramm aktualisieren
+            lineChart.update();
+        }
+
+        // Event-Listener für Klick auf das Diagramm
+        document.getElementById('lineChart').addEventListener('click', () => {
+            isPaused = !isPaused; // Pausenstatus umschalten
+        });
+
+        // Intervall für die Diagrammaktualisierung
+        setInterval(updateChart, 100);
+    </script>
+</body>
+</html>
